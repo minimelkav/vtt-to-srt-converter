@@ -52,9 +52,9 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          artifacts/ubuntu-latest/*
-          artifacts/macos-latest/*
-          artifacts/windows-latest/*
+          artifacts/ubuntu-latest/vtttosrt
+          artifacts/macos-latest/vtttosrt
+          artifacts/windows-latest/vtttosrt.exe
         tag_name: v${{ github.sha }}  # Use commit SHA as the tag
         name: Release v${{ github.sha }} 
         body: "Binaries built from commit `${{ github.sha }}`."
