@@ -1,12 +1,13 @@
 name: Build and Release
 
-permissions:
-  contents: write  # Give the workflow permission to create releases
-
 on:
   push:
-    branches: 
-      - main  # Only trigger on pushes to the "main" branch
+    branches:
+      - main 
+
+permissions: 
+  contents: write # Important: Allows the workflow to create releases 
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -15,59 +16,72 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    
+      - name: Setup C Compiler
+        uses:  andrew-d/setup-msbuild@v1
+        with:
+          c-compiler: clang 
 
-    
-    - name: Compile the program
-      run: |
-        gcc -o vtttosrt /src/vtttosrt.c
-    
+      - name: Build for ${{ matrix.os }}
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            gcc -o vtttosrt.exe src/vtttosrt.c 
+          else
+            gcc -o vtttosrt src/vtttosrt.c 
+          fi
+        
+      - name: Create Release Directory
+        run: mkdir -p release
 
-    - name: Create artifact directory
-      run: mkdir -p artifacts/${{ matrix.os }}
+      - name: Move Artifacts to Release
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            mv vtttosrt.exe ./release/vtttosrt-${{ matrix.os }}.exe 
+          else
+            mv vtttosrt ./release/vtttosrt-${{ matrix.os }}
+          fi 
 
-    - name: Move binary to artifact directory
-      run: mv vtttosrt artifacts/${{ matrix.os }}/vtttosrt${{ matrix.os == 'windows-latest' && '.exe' || '' }}
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: vtttosrt-${{ matrix.os }}
-        path: artifacts/${{ matrix.os }}/vtttosrt${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-${{ github.sha }} 
+          path: ./release
+          retention-days: 7 
 
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3 
 
-    - name: Download artifacts
-      uses: actions/download-artifact@v2
-      with:
-        name: vtttosrt-ubuntu-latest
-        path: artifacts/ubuntu-latest
-    - uses: actions/download-artifact@v2
-      with:
-        name: vtttosrt-macos-latest
-        path: artifacts/macos-latest
-    - uses: actions/download-artifact@v2
-      with:
-        name: vtttosrt-windows-latest
-        path: artifacts/windows-latest
+      - name: Download Ubuntu Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: release-${{ github.sha }} 
+          path: artifacts/ubuntu-latest 
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: release-${{ github.sha }}
+          path: artifacts/macos-latest
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: release-${{ github.sha }}
+          path: artifacts/windows-latest
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          artifacts/ubuntu-latest/vtttosrt
-          artifacts/macos-latest/vtttosrt
-          artifacts/windows-latest/vtttosrt.exe
-        tag_name: v${{ github.sha }}
-        name: Release v${{ github.sha }}
-        body: "Binaries built from commit `${{ github.sha }}`."
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/ubuntu-latest/vtttosrt-ubuntu-latest 
+            artifacts/macos-latest/vtttosrt-macos-latest
+            artifacts/windows-latest/vtttosrt-windows-latest.exe
+          tag_name: v${{ github.sha }}
+          name: Release v${{ github.sha }}
+          body: "Binaries built from commit `${{ github.sha }}`."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
