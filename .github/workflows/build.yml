@@ -6,7 +6,7 @@ on:
       - main 
 
 permissions: 
-  contents: write # Important: Allows the workflow to create releases 
+  contents: write # Required to create releases
 
 jobs:
   build:
@@ -19,10 +19,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup C Compiler
+      - name: Setup C Compiler 
         uses:  actions/setup-c-tools@v3
         with:
-          c-compiler: clang 
+          c-compiler: gcc  # Or use 'clang' if you prefer
+          c-compiler-version: '11' # Specify the desired GCC/Clang version 
 
       - name: Build for ${{ matrix.os }}
         run: |
@@ -54,9 +55,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3 
-
       - name: Download Ubuntu Artifact
         uses: actions/download-artifact@v3
         with:
@@ -84,4 +82,4 @@ jobs:
           name: Release v${{ github.sha }}
           body: "Binaries built from commit `${{ github.sha }}`."
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
