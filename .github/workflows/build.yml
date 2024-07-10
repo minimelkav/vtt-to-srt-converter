@@ -1,5 +1,9 @@
 name: Build and Release
 
+# Permissions need to be at the top-level 
+permissions:
+  releases: write  # Give the workflow permission to create releases
+
 on:
   push:
     branches: 
@@ -32,8 +36,6 @@ jobs:
   release: 
     needs: build  # This job depends on the 'build' job
     runs-on: ubuntu-latest
-    permissions:
-      releases: write  # Give the workflow permission to create releases
     steps:
     - uses: actions/checkout@v3
     - uses: actions/download-artifact@v3
