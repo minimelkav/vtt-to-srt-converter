@@ -10,16 +10,22 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
-    - name: Set up compiler
+    - name: Set up compiler on Ubuntu and macOS
+      if: runner.os != 'Windows'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-11
+    - name: Set up compiler on Windows
+      if: runner.os == 'Windows'
       uses: egor-tensin/setup-gcc@v1
       with:
-        gcc-version: '11' 
+        version: '11' 
     - name: Compile
       run: |
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
@@ -36,15 +42,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/download-artifact@v3
+    - name: Download Ubuntu build artifact
+      uses: actions/download-artifact@v3
       with:
         name: ubuntu-latest-build
         path: artifacts/ubuntu-latest
-    - uses: actions/download-artifact@v3
+    - name: Download macOS build artifact
+      uses: actions/download-artifact@v3
       with:
         name: macos-latest-build
         path: artifacts/macos-latest
-    - uses: actions/download-artifact@v3
+    - name: Download Windows build artifact
+      uses: actions/download-artifact@v3
       with:
         name: windows-latest-build
         path: artifacts/windows-latest
