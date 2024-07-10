@@ -1,30 +1,49 @@
-name: Build
+name: Build and Release
 
-on: [push]
+on:
+  push:
+    branches: 
+      - main  # Only trigger on pushes to the "main" branch
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-
     steps:
     - uses: actions/checkout@v3
-
     - name: Set up compiler
       uses: egor-tensin/setup-gcc@v1
       with:
-        gcc-version: '11' # Or your preferred version
-
+        gcc-version: '11' 
     - name: Compile
       run: |
-        gcc -o vtttosrt src/vtttosrt.c 
-        # (Adjust the compilation command if needed)
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          gcc -o vtttosrt.exe src/vtttosrt.c 
+        else
+          gcc -o vtttosrt src/vtttosrt.c
+        fi
+    - uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.os }}-build
-        path: vtttosrt 
+        path: vtttosrt* # Upload files matching the pattern
+
+  release: 
+    needs: build  # This job depends on the 'build' job
+    runs-on: ubuntu-latest
+    permissions:
+      releases: write  # Give the workflow permission to create releases
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/*/* # Upload all files from subdirectories within artifacts
+        tag_name: v${{ github.sha }}  # Use commit SHA as the tag
+        name: Release v${{ github.sha }} 
+        body: "Binaries built from commit `${{ github.sha }}`."
