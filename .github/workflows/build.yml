@@ -1,58 +1,71 @@
 name: Build and Release
 
-permissions:
-  contents: write  # Give the workflow permission to create releases
-
 on:
   push:
-    branches: 
-      - main  # Only trigger on pushes to the "main" branch
+    tags:
+      - 'v*'
 
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-    - name: Set up compiler on Windows
-      if: runner.os == 'Windows'
-      uses: egor-tensin/setup-gcc@v1
-      with:
-        version: '11' 
-    - name: Compile
+    - name: Set up C compiler
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get install gcc
+
+    - name: Set up C compiler
+      if: matrix.os == 'macos-latest'
+      run: brew install gcc
+
+    - name: Set up C compiler
+      if: matrix.os == 'windows-latest'
+      uses: chrislennon/action-setup-msvc@v1
+
+    - name: Compile the program
       run: |
-        if [ "${{ matrix.os }}" == "windows-latest" ]; then
-          gcc -o vtttosrt.exe src/vtttosrt.c 
-        else
-          gcc -o vtttosrt src/vtttosrt.c
-    - uses: actions/upload-artifact@v3
-      with:
-        name: ${{ matrix.os }}-build
-        path: vtttosrt* # Upload files matching the pattern
+        gcc -o vtttosrt vtttosrt.c
+      shell: bash
 
-  release: 
-    needs: build  # This job depends on the 'build' job
+    - name: Create artifact directory
+      run: mkdir -p artifacts/${{ matrix.os }}
+
+    - name: Move binary to artifact directory
+      run: mv vtttosrt artifacts/${{ matrix.os }}/vtttosrt${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: vtttosrt-${{ matrix.os }}
+        path: artifacts/${{ matrix.os }}/vtttosrt${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+
+  release:
+    needs: build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Download Ubuntu build artifact
-      uses: actions/download-artifact@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v2
       with:
-        name: ubuntu-latest-build
+        name: vtttosrt-ubuntu-latest
         path: artifacts/ubuntu-latest
-    - name: Download macOS build artifact
-      uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v2
       with:
-        name: macos-latest-build
+        name: vtttosrt-macos-latest
         path: artifacts/macos-latest
-    - name: Download Windows build artifact
-      uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v2
       with:
-        name: windows-latest-build
+        name: vtttosrt-windows-latest
         path: artifacts/windows-latest
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
@@ -60,6 +73,8 @@ jobs:
           artifacts/ubuntu-latest/vtttosrt
           artifacts/macos-latest/vtttosrt
           artifacts/windows-latest/vtttosrt.exe
-        tag_name: v${{ github.sha }}  # Use commit SHA as the tag
-        name: Release v${{ github.sha }} 
+        tag_name: v${{ github.sha }}
+        name: Release v${{ github.sha }}
         body: "Binaries built from commit `${{ github.sha }}`."
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
