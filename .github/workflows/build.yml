@@ -23,7 +23,7 @@ jobs:
     
     - name: Compile the program
       run: |
-        gcc -o vtttosrt vtttosrt.c
+        gcc -o vtttosrt /src/vtttosrt.c
     
 
     - name: Create artifact directory
