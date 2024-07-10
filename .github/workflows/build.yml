@@ -18,22 +18,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up C compiler
-      if: matrix.os == 'ubuntu-latest'
-      run: 
+    
 
-    - name: Set up C compiler
-      if: matrix.os == 'macos-latest'
-      run: 
-
-    - name: Set up C compiler
-      if: matrix.os == 'windows-latest'
-     
-
+    
     - name: Compile the program
       run: |
         gcc -o vtttosrt vtttosrt.c
-      shell: bash
+    
 
     - name: Create artifact directory
       run: mkdir -p artifacts/${{ matrix.os }}
