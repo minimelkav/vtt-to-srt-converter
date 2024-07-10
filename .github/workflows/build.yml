@@ -1,10 +1,12 @@
 name: Build and Release
 
+permissions:
+  contents: write  # Give the workflow permission to create releases
+
 on:
   push:
-    tags:
-      - 'v*'
-
+    branches: 
+      - main  # Only trigger on pushes to the "main" branch
 jobs:
   build:
     runs-on: ${{ matrix.os }}
