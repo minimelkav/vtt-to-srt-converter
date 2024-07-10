@@ -20,15 +20,15 @@ jobs:
 
     - name: Set up C compiler
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt-get install gcc
+      run: 
 
     - name: Set up C compiler
       if: matrix.os == 'macos-latest'
-      run: brew install gcc
+      run: 
 
     - name: Set up C compiler
       if: matrix.os == 'windows-latest'
-      uses: chrislennon/action-setup-msvc@v1
+     
 
     - name: Compile the program
       run: |
